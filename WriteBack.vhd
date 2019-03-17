@@ -10,7 +10,7 @@ entity WriteBack is
         MemData  : in STD_LOGIC_VECTOR(31 downto 0);
         WR       : out STD_LOGIC;
         RFData   : out STD_LOGIC_VECTOR(31 downto 0);
-        PC_WR    : out STD_LOGIC_VECTOR(31 downto 0)
+        PC_WR    : in STD_LOGIC_VECTOR(31 downto 0)
         );
 end WriteBack;
 

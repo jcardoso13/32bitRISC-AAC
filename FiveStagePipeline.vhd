@@ -105,7 +105,9 @@ component Execute
     PC     : in std_logic_vector(31 downto 0);
     PCLoadValue : out std_logic_vector(31 downto 0);
     PCLoadEnable : out std_logic;
-    DataD  : out std_logic_vector(31 downto 0) 
+    DataD  : out std_logic_vector(31 downto 0);
+    WR_Branch: out std_logic;
+    PC_WR: out std_logic_vector(31 downto 0)
   );
 end component;
 
@@ -122,7 +124,9 @@ component EXMEM_Stage_Registers
         EX_MMA  : in STD_LOGIC_VECTOR (1 downto 0);
         EX_MMB  : in STD_LOGIC_VECTOR (1 downto 0);
         EX_MW   : in STD_LOGIC;
-        EX_MD   : in STD_LOGIC;
+        EX_MD   : in STD_LOGIC_VECTOR(1 downto 0);
+        EX_PC_WR: in STD_LOGIC_VECTOR(31 downto 0);
+        EX_WR:    in STD_LOGIC;
         EX_DA   : in STD_LOGIC_VECTOR (3 downto 0);
         MEM_PC  : out STD_LOGIC_VECTOR (31 downto 0);
         MEM_I   : out STD_LOGIC_VECTOR (31 downto 0);
@@ -133,7 +137,9 @@ component EXMEM_Stage_Registers
         MEM_MMA : out STD_LOGIC_VECTOR (1 downto 0);
         MEM_MMB : out STD_LOGIC_VECTOR (1 downto 0);
         MEM_MW  : out STD_LOGIC;
-        MEM_MD  : out STD_LOGIC;
+        MEM_MD  : out STD_LOGIC_VECTOR(1 downto 0);
+        MEM_PC_WR: out STD_LOGIC_VECTOR(31 downto 0);
+        MEM_WR  : out STD_LOGIC;
         MEM_DA  : out STD_LOGIC_VECTOR (3 downto 0)
    );
 end component;
@@ -161,13 +167,17 @@ component MEMWB_Stage_Registers
         MEM_I    : in STD_LOGIC_VECTOR (31 downto 0);
         MEM_DMem : in STD_LOGIC_VECTOR (31 downto 0);
         MEM_DALU : in STD_LOGIC_VECTOR (31 downto 0);
-        MEM_MD   : in STD_LOGIC;
+        MEM_MD   : in STD_LOGIC_VECTOR(1 downto 0);
         MEM_DA   : in STD_LOGIC_VECTOR (3 downto 0);
+        MEM_PC_WR: in STD_LOGIC_VECTOR(31 downto 0);
+        MEM_WR:   in STD_LOGIC;
         WB_PC    : out STD_LOGIC_VECTOR (31 downto 0);
         WB_I     : out STD_LOGIC_VECTOR (31 downto 0);
         WB_DMem  : out STD_LOGIC_VECTOR (31 downto 0);
         WB_DALU  : out STD_LOGIC_VECTOR (31 downto 0);
-        WB_MD    : out STD_LOGIC;
+        WB_MD    : out STD_LOGIC_VECTOR(1 downto 0);
+        WB_PC_WR :  out STD_LOGIC_VECTOR(31 downto 0);
+        WB_WR   : out STD_LOGIC;
         WB_DA    : out STD_LOGIC_VECTOR (3 downto 0)
     );
 end component;
@@ -176,7 +186,8 @@ component WriteBack
   Port (
         Enable   : in STD_LOGIC;
         DA       : in STD_LOGIC_VECTOR(3 downto 0);
-        MD       : in STD_LOGIC;
+        MD       : in STD_LOGIC_VECTOR(1 downto 0);
+        PC_WR    : in STD_LOGIC_VECTOR(31 downto 0);
         ALUData  : in STD_LOGIC_VECTOR(31 downto 0);
         MemData  : in STD_LOGIC_VECTOR(31 downto 0);
         RFData   : out STD_LOGIC_VECTOR(31 downto 0)
@@ -188,6 +199,7 @@ component RegisterFile
     Port ( CLK : in std_logic;
            Data : in std_logic_vector (n_bits-1 downto 0);
            DA : in std_logic_vector (3 downto 0);
+           WR: in std_logic;
            AA : in std_logic_vector (3 downto 0);
            BA : in std_logic_vector (3 downto 0);
            A : out std_logic_vector (n_bits-1 downto 0);
@@ -208,7 +220,7 @@ signal EX_PL, ID_PL: std_logic_vector(1 downto 0);
 signal ID_AA, ID_BA, ID_DA, EX_DA, MEM_DA, WB_DA : std_logic_vector(3 downto 0);
 signal ID_MA, EX_MA, ID_MB, EX_MB : std_logic;
 signal ID_MMA, EX_MMA, MEM_MMA, ID_MMB, EX_MMB, MEM_MMB : std_logic_vector(1 downto 0);
-signal ID_MD, EX_MD, MEM_MD, WB_MD : std_logic;
+signal ID_MD, EX_MD, MEM_MD, WB_MD : std_logic_vector(1 downto 0);
 
 -- Functional Unit and Memory Operation Signals
 signal ID_FS, EX_FS : std_logic_vector(3 downto 0);
@@ -221,6 +233,10 @@ signal ID_B, EX_B, MEM_B: std_logic_vector(31 downto 0);
 signal EX_ALUData, MEM_ALUData, WB_ALUData: std_logic_vector(31 downto 0);
 signal MEM_MemData, WB_MemData: std_logic_vector(31 downto 0);
 signal WB_RFData: std_logic_vector(31 downto 0);
+
+
+signal EX_PC_WR,MEM_PC_WR,WB_PC_WR: std_logic_vector(31 downto 0);
+signal EX_WR,MEM_WR,WB_WR: std_logic;
 
 begin
 
@@ -253,11 +269,11 @@ ID2EX: IDEX_Stage_Registers port map(CLK=>CLK, Enable=>EnableID,
 --------------------------------------------------------------------------------------------------------------------------
 -- EX Stage
 --------------------------------------------------------------------------------------------------------------------------
-EX: Execute port map(A => EX_A, B => EX_B, MA=>EX_MA, MB=>EX_MB, KNS=>EX_KNS, FS=>EX_FS, PL=>EX_PL, BC=>EX_BC, PC=>EX_PC, PCLoadEnable=>EX_PCLoadEnable, PCLoadValue=>EX_PCLoadValue, DataD=>EX_ALUData);
+EX: Execute port map(A => EX_A, B => EX_B, MA=>EX_MA, MB=>EX_MB, KNS=>EX_KNS, FS=>EX_FS, PL=>EX_PL, BC=>EX_BC, PC=>EX_PC, PCLoadEnable=>EX_PCLoadEnable, PCLoadValue=>EX_PCLoadValue, DataD=>EX_ALUData,WR_Branch=>EX_WR,PC_WR=>EX_PC_WR);
 -- Registers between EX and MEM Stage
 EX2MEM: EXMEM_Stage_Registers port map(CLK=>CLK, Enable=>EnableEX, 
-     EX_I=>EX_Instruction,   EX_PC=>EX_PC,   EX_A=>EX_A,   EX_B=>EX_B,   EX_KNS=>EX_KNS,   EX_D=>EX_ALUData,   EX_MMA=>EX_MMA,   EX_MMB=>EX_MMB,   EX_MW=>EX_MW,   EX_MD=>EX_MD,   EX_DA=>EX_DA,
-    MEM_I=>MEM_Instruction, MEM_PC=>MEM_PC, MEM_A=>MEM_A, MEM_B=>MEM_B, MEM_KNS=>MEM_KNS, MEM_D=>MEM_ALUData, MEM_MMA=>MEM_MMA, MEM_MMB=>MEM_MMB, MEM_MW=>MEM_MW, MEM_MD=>MEM_MD, MEM_DA=>MEM_DA);
+     EX_I=>EX_Instruction,   EX_PC=>EX_PC,   EX_A=>EX_A,   EX_B=>EX_B,   EX_KNS=>EX_KNS,   EX_D=>EX_ALUData,   EX_MMA=>EX_MMA,   EX_MMB=>EX_MMB,   EX_MW=>EX_MW,   EX_MD=>EX_MD,   EX_DA=>EX_DA, EX_WR => EX_WR, EX_PC_WR => EX_PC_WR,
+    MEM_I=>MEM_Instruction, MEM_PC=>MEM_PC, MEM_A=>MEM_A, MEM_B=>MEM_B, MEM_KNS=>MEM_KNS, MEM_D=>MEM_ALUData, MEM_MMA=>MEM_MMA, MEM_MMB=>MEM_MMB, MEM_MW=>MEM_MW, MEM_MD=>MEM_MD, MEM_DA=>MEM_DA, MEM_WR=>MEM_WR,MEM_PC_WR=>MEM_PC_WR);
 
 --------------------------------------------------------------------------------------------------------------------------
 -- MEM Stage
@@ -265,13 +281,13 @@ EX2MEM: EXMEM_Stage_Registers port map(CLK=>CLK, Enable=>EnableEX,
 MEM: Memory port map(CLK=>CLK, StageEnable=>EnableMEM, A =>MEM_A, B => MEM_B, Din=>MEM_ALUData, KNS=>MEM_KNS, MMA=>MEM_MMA, MMB=>MEM_MMB, MW=>MEM_MW, Dout=>MEM_MemData);
 -- Registers between MEM and WB Stage
 MEM2WB: MEMWB_Stage_Registers port map(CLK=>CLK, Enable=>EnableMEM, 
-    MEM_I=>MEM_Instruction, MEM_PC=>MEM_PC, MEM_DALU=>MEM_ALUData, MEM_DMem=>MEM_MemData, MEM_MD=>MEM_MD, MEM_DA=>MEM_DA,
-     WB_I=>WB_Instruction,   WB_PC=>WB_PC,   WB_DALU=>WB_ALUData,   WB_DMem=>WB_MemData,   WB_MD=>WB_MD,   WB_DA=>WB_DA);
+    MEM_I=>MEM_Instruction, MEM_PC=>MEM_PC, MEM_DALU=>MEM_ALUData, MEM_DMem=>MEM_MemData, MEM_MD=>MEM_MD, MEM_DA=>MEM_DA, MEM_WR=>MEM_WR,MEM_PC_WR=>MEM_PC_WR,
+     WB_I=>WB_Instruction,   WB_PC=>WB_PC,   WB_DALU=>WB_ALUData,   WB_DMem=>WB_MemData,   WB_MD=>WB_MD,   WB_DA=>WB_DA,WB_WR=>WB_WR,WB_PC_WR=>WB_PC_WR);
 
 --------------------------------------------------------------------------------------------------------------------------
 -- WB Stage
 --------------------------------------------------------------------------------------------------------------------------
-WB: WriteBack port map(enable=>enableWB, DA=>WB_DA, MD=>WB_MD, ALUData=>WB_ALUData, MemData=>WB_MemData, RFData=>WB_RFData);
+WB: WriteBack port map(enable=>WB_WR, DA=>WB_DA, MD=>WB_MD, ALUData=>WB_ALUData, MemData=>WB_MemData, RFData=>WB_RFData,PC_WR=>WB_PC_WR);
 
 --------------------------------------------------------------------------------------------------------------------------
 -- Register File

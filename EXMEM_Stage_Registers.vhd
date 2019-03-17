@@ -44,8 +44,10 @@ entity EXMEM_Stage_Registers is
        EX_MMA  : in STD_LOGIC_VECTOR (1 downto 0);
        EX_MMB  : in STD_LOGIC_VECTOR (1 downto 0);
        EX_MW   : in STD_LOGIC;
-       EX_MD   : in STD_LOGIC;
+       EX_MD   : in STD_LOGIC_VECTOR(1 downto 0);
        EX_DA   : in STD_LOGIC_VECTOR (3 downto 0);
+       EX_PC_WR: in STD_LOGIC_VECTOR(31 downto 0);
+       EX_WR    : in STD_LOGIC;
        MEM_PC  : out STD_LOGIC_VECTOR (31 downto 0);
        MEM_I   : out STD_LOGIC_VECTOR (31 downto 0);
        MEM_A   : out STD_LOGIC_VECTOR (31 downto 0);
@@ -55,8 +57,10 @@ entity EXMEM_Stage_Registers is
        MEM_MMA : out STD_LOGIC_VECTOR (1 downto 0);
        MEM_MMB : out STD_LOGIC_VECTOR (1 downto 0);
        MEM_MW  : out STD_LOGIC;
-       MEM_MD  : out STD_LOGIC;
-       MEM_DA  : out STD_LOGIC_VECTOR (3 downto 0)
+       MEM_MD  : out STD_LOGIC_VECTOR(1 downto 0);
+       MEM_DA  : out STD_LOGIC_VECTOR (3 downto 0);
+       MEM_PC_WR: out STD_LOGIC_VECTOR(31 downto 0);
+       MEM_WR: out STD_LOGIC
    );
 end EXMEM_Stage_Registers;
 
@@ -82,8 +86,10 @@ EX_MEM_D:   RegisterN generic map(n_bits=>32) port map(CLK=>CLK, D=>EX_D,       
 EX_MEM_Mem: RegisterN generic map(n_bits=>5)  port map(CLK=>CLK, Enable=>Enable,
                         D(4 downto 3)=>EX_MMA,  D(2 downto 1)=>EX_MMB,  D(0)=>EX_MW,
                         Q(4 downto 3)=>MEM_MMA, Q(2 downto 1)=>MEM_MMB, Q(0)=>MEM_MW);
-EX_MEM_WB:  RegisterN generic map(n_bits=>5)  port map(CLK=>CLK, Enable=>Enable, 
-                        D(4 downto 1)=>EX_DA,  D(0)=>EX_MD,  
-                        Q(4 downto 1)=>MEM_DA, Q(0)=>MEM_MD);
+EX_MEM_WB:  RegisterN generic map(n_bits=>6)  port map(CLK=>CLK, Enable=>Enable, 
+                        D(5 downto 2)=>EX_DA,  D(1 downto 0)=>EX_MD,  
+                        Q(5 downto 2)=>MEM_DA, Q(1 downto 0)=>MEM_MD);
+EX_MEM_WB_WR: RegisterN generic map(n_bits=>33) port map (CLK=>CLK, Enable=>Enable,D(32 downto 1)=>EX_PC_WR,D(0)=>EX_WR,
+                                                            Q(32 downto 1)=>MEM_PC_WR,Q(0)=>MEM_WR);
 
 end Behavioral;
