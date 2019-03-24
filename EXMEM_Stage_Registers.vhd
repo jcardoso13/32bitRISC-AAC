@@ -48,6 +48,8 @@ entity EXMEM_Stage_Registers is
        EX_DA   : in STD_LOGIC_VECTOR (3 downto 0);
        EX_PC_WR: in STD_LOGIC_VECTOR(31 downto 0);
        EX_WR    : in STD_LOGIC;
+       Forwarding: in STD_LOGIC_VECTOR(1 downto 0);
+       StallData: in STD_LOGIC_VECTOR(31 downto 0);
        MEM_PC  : out STD_LOGIC_VECTOR (31 downto 0);
        MEM_I   : out STD_LOGIC_VECTOR (31 downto 0);
        MEM_A   : out STD_LOGIC_VECTOR (31 downto 0);
@@ -60,6 +62,8 @@ entity EXMEM_Stage_Registers is
        MEM_MD  : out STD_LOGIC_VECTOR(1 downto 0);
        MEM_DA  : out STD_LOGIC_VECTOR (3 downto 0);
        MEM_PC_WR: out STD_LOGIC_VECTOR(31 downto 0);
+       MEM_Forwarding: out STD_LOGIC_VECTOR(1 downto 0);
+       StalledData: out STD_LOGIC_VECTOR(31 downto 0);
        MEM_WR: out STD_LOGIC
    );
 end EXMEM_Stage_Registers;
@@ -91,5 +95,7 @@ EX_MEM_WB:  RegisterN generic map(n_bits=>6)  port map(CLK=>CLK, Enable=>Enable,
                         Q(5 downto 2)=>MEM_DA, Q(1 downto 0)=>MEM_MD);
 EX_MEM_WB_WR: RegisterN generic map(n_bits=>33) port map (CLK=>CLK, Enable=>Enable,D(32 downto 1)=>EX_PC_WR,D(0)=>EX_WR,
                                                             Q(32 downto 1)=>MEM_PC_WR,Q(0)=>MEM_WR);
+M_Forwarding: RegisterN generic map(n_bits=>2) port map(CLK=>CLK,Enable=>Enable,D(1 downto 0)=>Forwarding,Q(1 downto 0)=>MEM_Forwarding);
+WB_Forwarding_Data: RegisterN generic map(n_bits=>32) port map(CLK=>CLK,Enable=>Enable,D(31 downto 0)=>StallData,Q(31 downto 0)=>StalledData);
 
 end Behavioral;

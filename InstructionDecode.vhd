@@ -4,11 +4,15 @@ use ieee.numeric_std.all;
 
 entity InstructionDecode is
     Port ( Instruction : in STD_LOGIC_VECTOR (31 downto 0);
+        EX_DA: in STD_LOGIC_VECTOR(3 downto 0);
+        MEM_DA: in STD_LOGIC_VECTOR(3 downto 0);
+        EX_MD: in std_logic_vector(1 downto 0);
+        Disable: out std_logic;
             -- Instruction operands (OF => Operand Fetch)
            AA       : out STD_LOGIC_VECTOR ( 3 downto 0);
-           MA       : out STD_LOGIC;
+           MA       : out STD_LOGIC_VECTOR(1 downto 0);
            BA       : out STD_LOGIC_VECTOR ( 3 downto 0);
-           MB       : out STD_LOGIC;
+           MB       : out STD_LOGIC_VECTOR(1 downto 0);
            KNS      : out STD_LOGIC_VECTOR (31 downto 0);
            -- execution control (EX => Execute)
            FS       : out STD_LOGIC_VECTOR ( 3 downto 0);
@@ -26,7 +30,7 @@ entity InstructionDecode is
 end InstructionDecode;
 
 architecture Structural of InstructionDecode is
-type storage_type is array (0 to 63) of std_logic_vector(30 downto 0);
+type storage_type is array (0 to 63) of std_logic_vector(31 downto 0);
 
 --------------------------------------------------------------------------------------------------------------------------------  
 -- SIGNAL PARTIAL DESCRIPTION  
@@ -71,59 +75,60 @@ type storage_type is array (0 to 63) of std_logic_vector(30 downto 0);
 signal decode_memory: storage_type := (
 -- UNCOMMENT THE LINES CORRESPONDING TO YOUR OPCODES
   --------------------------------------------------------------------------------------------------------------------------------  
-  -- OPCODE =>  PL  &  dAA    & dBA     & dDA     &  FS     &  KNSSel &  MASel &  MBSel &  MMA   & MMB   &  MW  &  MDSel
-  -- (decimal) (31-30) & (29-26) & (25-22) & (21-18) & (17-14) & (13-11) & (10-9) & (8-7)  & (6-5)  & (4-3) &  (2) & (1-0)  
+  -- OPCODE =>          PL  &  dAA    & dBA     & dDA     &  FS     &  KNSSel &  MASel &  MBSel &  MMA   & MMB   &  MW  &  MDSel
+  -- (decimal)          (31-30) & (29-26) & (25-22) & (21-18) & (17-14) & (13-11) & (10-9) & (8-7)  & (6-5)  & (4-3) &  (2) & (1-0)  
   --------------------------------------------------------------------------------------------------------------------------------  
-          000000 =>  "00" &   x"0"  &  x"0"   &  x"0"   &  x"0"   &  "000"  &  "00"  &  "00"  &  "00"  & "00"  &  '0' &  "00",  -- ADD    R[DR],R[SA],R[SB]
-          000001 =>  "00" &   x"0"  &  x"0"   &  x"0"   &  x"0"   &  "001"  &  "00"  &  "01"  &  "00"  & "00"  &  '0' &  "00",  -- ADDI   R[DR],R[SA],SIMM18
-          000010 =>  "00" &   x"0"  &  x"0"   &  x"0"   &  x"3"   &  "000"  &  "00"  &  "00"  &  "00"  & "00"  &  '0' &  "00",  -- SUB    R[DR],R[SA],R[SB]
-          000011 =>  "00" &   x"0"  &  x"0"   &  x"0"   &  x"3"   &  "001"  &  "00"  &  "01"  &  "00"  & "00"  &  '0' &  "00",  -- SUBI   R[DR],R[SA],SIMM18
+          0 =>  "00" &   x"0"  &  x"0"   &  x"0"   &  x"0"   &  "000"  &  "00"  &  "00"  &  "00"  & "00"  &  '0' &  "00",  -- ADD    R[DR],R[SA],R[SB]
+          1 =>  "00" &   x"0"  &  x"0"   &  x"0"   &  x"0"   &  "001"  &  "00"  &  "01"  &  "00"  & "00"  &  '0' &  "00",  -- ADDI   R[DR],R[SA],SIMM18
+          2 =>  "00" &   x"0"  &  x"0"   &  x"0"   &  x"3"   &  "000"  &  "00"  &  "00"  &  "00"  & "00"  &  '0' &  "00",  -- SUB    R[DR],R[SA],R[SB]
+          3 =>  "00" &   x"0"  &  x"0"   &  x"0"   &  x"3"   &  "001"  &  "00"  &  "01"  &  "00"  & "00"  &  '0' &  "00",  -- SUBI   R[DR],R[SA],SIMM18
   --------------------------------------------------------------------------------------------------------------------------------  
-  -- OPCODE =>  PL  &  dAA    & dBA     & dDA     &  FS     &  KNSSel &  MASel &  MBSel &  MMA   & MMB   &  MW  &  MDSel
+  -- OPCODE =>           PL  &  dAA    & dBA     & dDA   &  FS   &  KNSSel &  MASel &  MBSel &  MMA   & MMB   &  MW  &  MDSel
   --------------------------------------------------------------------------------------------------------------------------------  
-          000100 =>  "00" &   x"0"  &  x"0"   &  x"0"   &  x"4"   &  "000"  &  "00"  &  "00"  &  "00"  &  "00"  &  '0' &  "00",  -- AND    R[DR],R[SA],R[SB]
-          000101 =>  "00" &   x"0"  &  x"0"   &  x"0"   &  x"4"   &  "101"  &  "00"  &  "01"  &  "00"  &  "00"  &  '0' &  "00",  -- ANDIL  R[DR],R[SA],IMM16
-          000110 =>  "00" &   x"0"  &  x"0"   &  x"0"   &  x"4"   &  "111"  &  "00"  &  "01"  &  "00"  &  "00"  &  '0' &  "00",  -- ANDIH  R[DR],R[SA],IMM16
-          000111 =>  "00" &   x"0"  &  x"0"   &  x"0"   &  x"5"   &  "000"  &  "00"  &  "00"  &  "00"  &  "00"  &  '0' &  "00",  -- NAND   R[DR],R[SA],R[SB]
-          001000 =>  "00" &   x"0"  &  x"0"   &  x"0"   &  x"6"   &  "000"  &  "00"  &  "00"  &  "00"  &  "00"  &  '0' &  "00",  -- OR     R[DR],R[SA],R[BA]
-          001001 =>  "00" &   x"0"  &  x"0"   &  x"0"   &  x"6"   &  "100"  &  "00"  &  "01"  &  "00"  &  "00"  &  '0' &  "00",  -- ORIL   R[DR],R[SA],IMM16
-          001010 =>  "00" &   x"0"  &  x"0"   &  x"0"   &  x"6"   &  "110"  &  "00"  &  "01"  &  "00"  &  "00"  &  '0' &  "00",  -- ORIH   R[DR],R[SA],IMM16
-          001011 =>  "00" &   x"0"  &  x"0"   &  x"0"   &  x"7"   &  "000"  &  "00"  &  "00"  &  "00"  &  "00"  &  '0' &  "00",  -- NOR    R[DR],R[SA],R[SB]
-          001100 =>  "00" &   x"0"  &  x"0"   &  x"0"   &  x"8"   &  "000"  &  "00"  &  "00"  &  "00"  &  "00"  &  '0' &  "00",  -- XOR    R[DR],R[SA],R[SB]
-          001101 =>  "00" &   x"0"  &  x"0"   &  x"0"   &  x"9"   &  "000"  &  "00"  &  "00"  &  "00"  &  "00"  &  '0' &  "00",  -- XNOR   R[DR],R[SA],R[SB]
+          4 =>  "00" &   x"0"  &  x"0"   &  x"0"   &  x"4"   &  "000"  &  "00"  &  "00"  &  "00"  &  "00"  &  '0' &  "00",  -- AND    R[DR],R[SA],R[SB]
+          5 =>  "00" &   x"0"  &  x"0"   &  x"0"   &  x"4"   &  "101"  &  "00"  &  "11"  &  "00"  &  "00"  &  '0' &  "00",  -- ANDIL  R[DR],R[SA],IMM16
+          6 =>  "00" &   x"0"  &  x"0"   &  x"0"   &  x"4"   &  "111"  &  "00"  &  "11"  &  "00"  &  "00"  &  '0' &  "00",  -- ANDIH  R[DR],R[SA],IMM16
+          7 =>  "00" &   x"0"  &  x"0"   &  x"0"   &  x"5"   &  "000"  &  "00"  &  "00"  &  "00"  &  "00"  &  '0' &  "00",  -- NAND   R[DR],R[SA],R[SB]
+          8 =>  "00" &   x"0"  &  x"0"   &  x"0"   &  x"6"   &  "000"  &  "00"  &  "00"  &  "00"  &  "00"  &  '0' &  "00",  -- OR     R[DR],R[SA],R[BA]
+          9 =>  "00" &   x"0"  &  x"0"   &  x"0"   &  x"6"   &  "100"  &  "00"  &  "11"  &  "00"  &  "00"  &  '0' &  "00",  -- ORIL   R[DR],R[SA],IMM16
+          10 =>  "00" &   x"0"  &  x"0"   &  x"0"   &  x"6"   &  "110"  &  "00"  &  "11"  &  "00"  &  "00"  &  '0' &  "00",  -- ORIH   R[DR],R[SA],IMM16
+          11 =>  "00" &   x"0"  &  x"0"   &  x"0"   &  x"7"   &  "000"  &  "00"  &  "00"  &  "00"  &  "00"  &  '0' &  "00",  -- NOR    R[DR],R[SA],R[SB]
+          12 =>  "00" &   x"0"  &  x"0"   &  x"0"   &  x"8"   &  "000"  &  "00"  &  "00"  &  "00"  &  "00"  &  '0' &  "00",  -- XOR    R[DR],R[SA],R[SB]
+          13 =>  "00" &   x"0"  &  x"0"   &  x"0"   &  x"9"   &  "000"  &  "00"  &  "00"  &  "00"  &  "00"  &  '0' &  "00",  -- XNOR   R[DR],R[SA],R[SB]
   --------------------------------------------------------------------------------------------------------------------------------  
-  -- OPCODE =>  PL  &  dAA    & dBA     & dDA     &  FS     &  KNSSel &  MASel &  MBSel &  MMA   & MMB   &  MW  &  MDSel
+  -- OPCODE =>          PL  &  dAA    & dBA     & dDA     &  FS     &  KNSSel &  MASel &  MBSel &  MMA   & MMB   &  MW  &  MDSel
   --------------------------------------------------------------------------------------------------------------------------------  
-          001110  =>  "00" &   x"0"  &  x"0"   &  x"0"   &  x"A"   &  "000"  &  "00"  & "00"  &  "00"  &  "00"  &  '0' &  "00",  -- LSL    R[DR],R[SB]
-          001111 =>  "00" &   x"0"  &  x"0"   &  x"0"   &  x"B"   &  "000"  &  "00"  &  "00"  &  "00"  &  "00"  &  '0' &  "00",  -- LSR    R[DR],R[SB]
-          010000 =>  "00" &   x"0"  &  x"0"   &  x"0"   &  x"E"   &  "000"  &  "00"  &  "00"  &  "00"  &  "00"  &  '0' &  "00",  -- ROL    R[DR],R[SB]
-          010001 =>  "00" &   x"0"  &  x"0"   &  x"0"   &  x"F"   &  "000"  &  "00"  &  "00"  &  "00"  &  "00"  &  '0' &  "00",  -- ROR    R[DR],R[SB]
-          010010 =>  "00" &   x"0"  &  x"0"   &  x"0"   &  x"C"   &  "000"  &  "00"  &  "00"  &  "00"  &  "00"  &  '0' &  "00",  -- ASL    R[DR],R[SB]
-          010011 =>  "00" &   x"0"  &  x"0"   &  x"0"   &  x"D"   &  "000"  &  "00"  &  "00"  &  "00"  &  "00"  &  '0' &  "00",  -- ASR    R[DR],R[SB]
+          14  =>  "00" &   x"0"  &  x"0"   &  x"0"   &  x"A"   &  "000"  &  "10"  & "00"  &  "00"  &  "00"  &  '0' &  "00",  -- LSL    R[DR],R[SB]
+          15 =>  "00" &   x"0"  &  x"0"   &  x"0"   &  x"B"   &  "000"  &  "10"  &  "00"  &  "00"  &  "00"  &  '0' &  "00",  -- LSR    R[DR],R[SB]
+          16 =>  "00" &   x"0"  &  x"0"   &  x"0"   &  x"E"   &  "000"  &  "10"  &  "00"  &  "00"  &  "00"  &  '0' &  "00",  -- ROL    R[DR],R[SB]
+          17 =>  "00" &   x"0"  &  x"0"   &  x"0"   &  x"F"   &  "000"  &  "10"  &  "00"  &  "00"  &  "00"  &  '0' &  "00",  -- ROR    R[DR],R[SB]
+          18 =>  "00" &   x"0"  &  x"0"   &  x"0"   &  x"C"   &  "000"  &  "10"  &  "00"  &  "00"  &  "00"  &  '0' &  "00",  -- ASL    R[DR],R[SB]
+          19 =>  "00" &   x"0"  &  x"0"   &  x"0"   &  x"D"   &  "000"  &  "10"  &  "00"  &  "00"  &  "00"  &  '0' &  "00",  -- ASR    R[DR],R[SB]
   --------------------------------------------------------------------------------------------------------------------------------  
-  -- OPCODE =>  PL  &  dAA    & dBA     & dDA     &  FS     &  KNSSel &  MASel &  MBSel &  MMA   & MMB   &  MW  &  MDSel
+  -- OPCODE =>          PL  &  dAA    & dBA     & dDA     &  FS     &  KNSSel & MASel & MBSel &  MMA   & MMB   &  MW  &  MDSel
   --------------------------------------------------------------------------------------------------------------------------------  
-          010100 =>  "00" &   x"0"  &  x"0"   &  x"0"   &  x"0"   &  "000"  &  "00"  &  "00"  &  "11"  & "00"  &  '0' &  "00",  -- LD     R[DA],(R[AA]+R[BA])
-          010101 =>  "00" &   x"0"  &  x"0"   &  x"0"   &  x"0"   &  "001"  &  "00"  &  "01"  &  "11"  & "00"  &  '0' &  "00",  -- LDI    R[DA],(R[AA]+SIMM18)
-          010110 =>  "00" &   x"0"  &  x"0"   &  x"0"   &  x"0"   &  "010"  &  "00"  &  "01"  &  "11"  & "10"  &  '1' &  "01",  -- ST     (R[AA]+SIMM18),R[SB]
+          20 =>  "00" &   x"0"  &  x"0"   &  x"0"   &  x"0"   &  "000"  &  "00"  &  "00"  &  "11"  & "00"  &  '0' &  "00",  -- LD     R[DA],(R[AA]+R[BA])
+          21 =>  "00" &   x"0"  &  x"0"   &  x"0"   &  x"0"   &  "001"  &  "00"  &  "11"  &  "11"  & "00"  &  '0' &  "00",  -- LDI    R[DA],(R[AA]+SIMM18)
+          22 =>  "00" &   x"0"  &  x"0"   &  x"0"   &  x"0"   &  "010"  &  "00"  &  "01"  &  "11"  & "10"  &  '1' &  "01",  -- ST     (R[AA]+SIMM18),R[SB]
   --------------------------------------------------------------------------------------------------------------------------------  
-  -- OPCODE =>  PL  &  dAA    & dBA     & dDA     &  FS     &  KNSSel &  MASel &  MBSel &  MMA   & MMB   &  MW  &  MDSel
+  -- OPCODE =>          PL  &  dAA    & dBA     & dDA     &  FS     &  KNSSel &  MASel &  MBSel &  MMA   & MMB   &  MW  &  MDSel
   --------------------------------------------------------------------------------------------------------------------------------  
-          010111 =>  "10" &   x"0"  &  x"0"   &  x"F"   &  x"3"   &  "011"  &  "00"  &  "00"  &  "00"  &  "00"  &  '0' &  "11",  -- B.cond  (R[SA] cond R[SB]),SIMM14
-          011000 =>  "10" &   x"0"  &  x"0"   &  x"F"   &  x"3"   &  "011"  &  "00"  &  "01"  &  "00"  &  "00"  &  '0' &  "11",  -- BI.cond (R[SA] cond SIMM14),R[SB]
-          011001 =>  "11" &   x"0"  &  x"0"   &  x"F"   &  x"3"   &  "100"  &  "00"  &  "10"  &  "00"  &  "00" &  '0' &  "11",  -- J.cond  (R[SA] cond R[SB]),SIMM14
-          011010 =>  "11" &   x"0"  &  x"0"   &  x"F"   &  x"3"   &  "011"  &  "00"  &  "01"  &  "00"  &  "00"  &  '0' &  "11",  -- JI.cond (R[SA] cond SIMM14),R[SB]
-     others =>  "00" &   x"0"  &  x"0"   &  x"0"   &  x"0"   &  "000"  &  "00"  &  "00"  &  "00"  & "00"  &  '0' &  "10"   -- NOP
+          23 =>  "10" &   x"0"  &  x"0"   &  x"F"   &  x"3"   &  "011"  &  "00"  &  "00"  &  "00"  &  "00"  &  '0' &  "11",  -- B.cond  (R[SA] cond R[SB]),SIMM14
+          24 =>  "10" &   x"0"  &  x"0"   &  x"F"   &  x"3"   &  "011"  &  "00"  &  "01"  &  "00"  &  "00"  &  '0' &  "11",  -- BI.cond (R[SA] cond SIMM14),R[SB]
+          25 =>  "11" &   x"0"  &  x"0"   &  x"F"   &  x"3"   &  "100"  &  "00"  &  "10"  &  "00"  &  "00" &  '0' &  "11",  -- J.cond  (R[SA] cond R[SB]),SIMM14
+          26 =>  "11" &   x"0"  &  x"0"   &  x"F"   &  x"3"   &  "011"  &  "00"  &  "01"  &  "00"  &  "00"  &  '0' &  "11",  -- JI.cond (R[SA] cond SIMM14),R[SB]
+     others =>       "00" &   x"0"  &  x"0"   &  x"0"   &  x"0"   &  "000"  &  "00"  &  "00"  &  "00"  & "00"  &  '0' &  "10"   -- NOP
    );
 
 signal Opcode : std_logic_vector(5 downto 0);
-signal mem_out : std_logic_vector(30 downto 0);
+signal mem_out : std_logic_vector(31 downto 0);
 
 signal SA,dAA : std_logic_vector(3 downto 0);
 signal SB,dBA : std_logic_vector(3 downto 0);
 signal DR,dDA : std_logic_vector(3 downto 0);
 signal MASel, MBSel, MDSel : std_logic_vector(1 downto 0);
 signal KNSSel : std_logic_vector(2 downto 0);
+signal AA_Buf,BA_buf:unsigned(3 downto 0);
 
 begin
 
@@ -164,19 +169,30 @@ MDSel <= mem_out( 1 downto 0);
 
 -- select registers to read from the Register File ("Unidade de Armazenamento")
 with MASel(1) select
-    AA <= SA  when '0',
-          dAA when others; 
+    AA_Buf <= unsigned(SA)  when '0',
+          unsigned(dAA) when others; 
 
 with MBSel(1) select
-    BA <= SB  when '0',
-          dBA when others; 
+    BA_buf <= unsigned(SB)  when '0',
+          unsigned(dBA) when others; 
 
 with MDSel(1) select
     DA <= DR  when '0',
           dDA when others;
+
+AA<=std_logic_vector(AA_Buf);
+BA<=std_logic_vector(BA_buf);
            
-MA <= MASel(0);
-MB <= MBSel(0);
+MA<= '0' & MASel(0) when ((unsigned(EX_DA)/=AA_Buf and unsigned(MEM_DA)/=AA_Buf) or AA_Buf=x"0") else
+        "10" when (unsigned(EX_DA)=AA_Buf and AA_Buf/=x"0") else
+        "11";
+MB<= '0' & MBSel(0) when ((unsigned(EX_DA)/=BA_buf and unsigned(MEM_DA)/=BA_buf) or BA_buf=x"0") else
+        "10" when (unsigned(EX_DA)=BA_buf and BA_buf/=x"0") else
+        "11";
 MD <= MDSel;
+
+Disable<='1' when ((unsigned(EX_DA)=AA_Buf or unsigned(EX_DA)=BA_buf) and unsigned(EX_MD)="01") else '0';
+
+
 
 end Structural;

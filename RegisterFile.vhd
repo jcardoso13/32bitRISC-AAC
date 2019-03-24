@@ -16,7 +16,7 @@ entity RegisterFile is
 end RegisterFile;
 
 architecture structural of RegisterFile is
-component RegisterN is
+component RegisterN_neg is
     Generic (n_bits : integer := 32);
 	port(	D: in std_logic_vector(n_bits-1 downto 0);
 			Enable: in std_logic;
@@ -65,21 +65,21 @@ end generate;
 
 -- Instantiate the 16 registers... Register R0 is stuck at Q0=0
 Q0 <= (others => '0');
-R1:  RegisterN generic map(n_bits=>n_bits) port map (D => Data, Enable => WriteEnable(1), CLK => CLK, Q=> Q1);
-R2:  RegisterN generic map(n_bits=>n_bits) port map (D => Data, Enable => WriteEnable(2), CLK => CLK, Q=> Q2);
-R3:  RegisterN generic map(n_bits=>n_bits) port map (D => Data, Enable => WriteEnable(3), CLK => CLK, Q=> Q3);
-R4:  RegisterN generic map(n_bits=>n_bits) port map (D => Data, Enable => WriteEnable(4), CLK => CLK, Q=> Q4);
-R5:  RegisterN generic map(n_bits=>n_bits) port map (D => Data, Enable => WriteEnable(5), CLK => CLK, Q=> Q5);
-R6:  RegisterN generic map(n_bits=>n_bits) port map (D => Data, Enable => WriteEnable(6), CLK => CLK, Q=> Q6);
-R7:  RegisterN generic map(n_bits=>n_bits) port map (D => Data, Enable => WriteEnable(7), CLK => CLK, Q=> Q7);
-R8:  RegisterN generic map(n_bits=>n_bits) port map (D => Data, Enable => WriteEnable(8), CLK => CLK, Q=> Q8);
-R9:  RegisterN generic map(n_bits=>n_bits) port map (D => Data, Enable => WriteEnable(9), CLK => CLK, Q=> Q9);
-R10: RegisterN generic map(n_bits=>n_bits) port map (D => Data, Enable => WriteEnable(10), CLK => CLK, Q=> Q10);
-R11: RegisterN generic map(n_bits=>n_bits) port map (D => Data, Enable => WriteEnable(11), CLK => CLK, Q=> Q11);
-R12: RegisterN generic map(n_bits=>n_bits) port map (D => Data, Enable => WriteEnable(12), CLK => CLK, Q=> Q12);
-R13: RegisterN generic map(n_bits=>n_bits) port map (D => Data, Enable => WriteEnable(13), CLK => CLK, Q=> Q13);
-R14: RegisterN generic map(n_bits=>n_bits) port map (D => Data, Enable => WriteEnable(14), CLK => CLK, Q=> Q14);
-R15: RegisterN generic map(n_bits=>n_bits) port map (D => Data, Enable => WriteEnable(15), CLK => CLK, Q=> Q15);
+R1:  RegisterN_neg generic map(n_bits=>n_bits) port map (D => Data, Enable => WriteEnable(1), CLK => CLK, Q=> Q1);
+R2:  RegisterN_neg generic map(n_bits=>n_bits) port map (D => Data, Enable => WriteEnable(2), CLK => CLK, Q=> Q2);
+R3:  RegisterN_neg generic map(n_bits=>n_bits) port map (D => Data, Enable => WriteEnable(3), CLK => CLK, Q=> Q3);
+R4:  RegisterN_neg generic map(n_bits=>n_bits) port map (D => Data, Enable => WriteEnable(4), CLK => CLK, Q=> Q4);
+R5:  RegisterN_neg generic map(n_bits=>n_bits) port map (D => Data, Enable => WriteEnable(5), CLK => CLK, Q=> Q5);
+R6:  RegisterN_neg generic map(n_bits=>n_bits) port map (D => Data, Enable => WriteEnable(6), CLK => CLK, Q=> Q6);
+R7:  RegisterN_neg generic map(n_bits=>n_bits) port map (D => Data, Enable => WriteEnable(7), CLK => CLK, Q=> Q7);
+R8:  RegisterN_neg generic map(n_bits=>n_bits) port map (D => Data, Enable => WriteEnable(8), CLK => CLK, Q=> Q8);
+R9:  RegisterN_neg generic map(n_bits=>n_bits) port map (D => Data, Enable => WriteEnable(9), CLK => CLK, Q=> Q9);
+R10: RegisterN_neg generic map(n_bits=>n_bits) port map (D => Data, Enable => WriteEnable(10), CLK => CLK, Q=> Q10);
+R11: RegisterN_neg generic map(n_bits=>n_bits) port map (D => Data, Enable => WriteEnable(11), CLK => CLK, Q=> Q11);
+R12: RegisterN_neg generic map(n_bits=>n_bits) port map (D => Data, Enable => WriteEnable(12), CLK => CLK, Q=> Q12);
+R13: RegisterN_neg generic map(n_bits=>n_bits) port map (D => Data, Enable => WriteEnable(13), CLK => CLK, Q=> Q13);
+R14: RegisterN_neg generic map(n_bits=>n_bits) port map (D => Data, Enable => WriteEnable(14), CLK => CLK, Q=> Q14);
+R15: RegisterN_neg generic map(n_bits=>n_bits) port map (D => Data, Enable => WriteEnable(15), CLK => CLK, Q=> Q15);
 
 -- Output multiplexer A: select register contents to place at output port A
 with AA select

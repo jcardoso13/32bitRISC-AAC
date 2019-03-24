@@ -111,7 +111,7 @@ signal Instruction : std_logic_vector(31 downto 0);
 signal PCValue, PCLoadValue : std_logic_vector(31 downto 0);
 signal BC : std_logic_vector(3 downto 0);
 signal PCLoadEnable : std_logic;
-signal: PL: std_logic_vector(1 downto 0);
+signal PL: std_logic_vector(1 downto 0);
 
 -- RF addressing and operand selection signals
 signal AA, BA, DA : std_logic_vector(3 downto 0);

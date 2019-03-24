@@ -19,7 +19,8 @@ architecture Behavioral of branchcontrol is
 
 signal Z,N,P,C,V: std_logic;
 signal Y: std_logic;
-signal PCValue_buf: signed(31 downto 0);
+signal PCValue_buf,addition,PC_WR_buf: unsigned(31 downto 0);
+signal PCLoad_buf:std_logic;
 begin
 
 Z <= Flags(3);        -- zero flag
@@ -33,8 +34,8 @@ V <= Flags(0);        -- overflow flag
 -- Em todos os outros casos (i.e., a instru��o n�o � de branch, ou a condi��o de salto � falsa) o valor 
 -- dever� ser zero.
 
-Y<= 0 when BC(2 downto 0)="000" else
-    1 when BC(2 downto 0)="001" else
+Y<= '0' when BC(2 downto 0)="000" else
+    '1' when BC(2 downto 0)="001" else
     Z when BC(2 downto 0)="010" else 
     not(Z) when BC(2 downto 0)="011" else
     P when BC(2 downto 0)="100" else
@@ -42,12 +43,15 @@ Y<= 0 when BC(2 downto 0)="000" else
     N when BC(2 downto 0)="110" else
     N or Z;
 
-PCLoad <= PL(1) and Y;
+PCLoad_buf <= PL(1) and Y;
+PCLoad<=PCLoad_buf;
 
+addition<=unsigned(PC)+unsigned(AD);
 -- Calculo do novo valor de PC (caso a condicao de salto seja verdadeira)
-PCValue_buf<=unsigned(PC)+signed(AD) when PL="10" else signed(AD) when PL="11" else unsigned(PC);
+PCValue_buf<=addition when PL="10" else unsigned(AD) when PL="11" else unsigned(PC);
 PCValue<=STD_LOGIC_VECTOR(PCValue_buf);
-WR_Branch <= '1' when (PCLoad <='1' and BC(3)='1') or PL(1)='0' else '0';  
-
+WR_Branch <= '1' when (PCLoad_buf='1' and BC(3)='1') or PL(1)='0' else '0';  
+PC_WR_buf<=unsigned(PC)+x"1";
+PC_WR<=std_logic_vector(PC_WR_buf);
 
 end Behavioral;

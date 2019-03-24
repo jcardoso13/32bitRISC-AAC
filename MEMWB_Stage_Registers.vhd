@@ -11,11 +11,15 @@ entity MEMWB_Stage_Registers is
        MEM_DALU : in STD_LOGIC_VECTOR (31 downto 0);
        MEM_MD   : in STD_LOGIC_VECTOR(1 downto 0);
        MEM_DA   : in STD_LOGIC_VECTOR (3 downto 0);
+       MEM_PC_WR: in STD_LOGIC_VECTOR(31 downto 0);
+       MEM_WR   : in STD_LOGIC;
        WB_PC    : out STD_LOGIC_VECTOR (31 downto 0);
        WB_I     : out STD_LOGIC_VECTOR (31 downto 0);
        WB_DMem  : out STD_LOGIC_VECTOR (31 downto 0);
        WB_DALU  : out STD_LOGIC_VECTOR (31 downto 0);
        WB_MD    : out STD_LOGIC_VECTOR(1 downto 0);
+       WB_PC_WR : out STD_LOGIC_VECTOR(31 downto 0);
+       WB_WR    : out STD_LOGIC;
        WB_DA    : out STD_LOGIC_VECTOR (3 downto 0)
     );
 end MEMWB_Stage_Registers;
