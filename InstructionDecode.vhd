@@ -105,13 +105,13 @@ signal decode_memory: storage_type := (
           18 =>  "00" &   x"0"  &  x"0"   &  x"0"   &  x"C"   &  "000"  &  "10"  &  "00"  &  "00"  &  "00"  &  '0' &  "00",  -- ASL    R[DR],R[SB]
           19 =>  "00" &   x"0"  &  x"0"   &  x"0"   &  x"D"   &  "000"  &  "10"  &  "00"  &  "00"  &  "00"  &  '0' &  "00",  -- ASR    R[DR],R[SB]
   --------------------------------------------------------------------------------------------------------------------------------  
-  -- OPCODE =>          PL  &  dAA    & dBA     & dDA     &  FS     &  KNSSel & MASel & MBSel &  MMA   & MMB   &  MW  &  MDSel
+  -- OPCODE =>     PL  &  dAA    & dBA     & dDA     &  FS     &  KNSSel & MASel & MBSel &  MMA   & MMB   &  MW  &  MDSel
   --------------------------------------------------------------------------------------------------------------------------------  
-          20 =>  "00" &   x"0"  &  x"0"   &  x"0"   &  x"0"   &  "000"  &  "00"  &  "00"  &  "11"  & "00"  &  '0' &  "00",  -- LD     R[DA],(R[AA]+R[BA])
-          21 =>  "00" &   x"0"  &  x"0"   &  x"0"   &  x"0"   &  "001"  &  "00"  &  "11"  &  "11"  & "00"  &  '0' &  "00",  -- LDI    R[DA],(R[AA]+SIMM18)
-          22 =>  "00" &   x"0"  &  x"0"   &  x"0"   &  x"0"   &  "010"  &  "00"  &  "01"  &  "11"  & "10"  &  '1' &  "01",  -- ST     (R[AA]+SIMM18),R[SB]
+          20 =>  "00" &   x"0"  &  x"0"   &  x"0"   &  x"0"   &  "000"  &  "00"  &  "00"  &  "11"  & "00"  &  '0' &  "01",  -- LD     R[DA],(R[AA]+R[BA])
+          21 =>  "00" &   x"0"  &  x"0"   &  x"0"   &  x"0"   &  "001"  &  "00"  &  "11"  &  "11"  & "00"  &  '0' &  "01",  -- LDI    R[DA],(R[AA]+SIMM18)
+          22 =>  "00" &   x"0"  &  x"0"   &  x"0"   &  x"0"   &  "010"  &  "00"  &  "01"  &  "11"  & "10"  &  '1' &  "11",  -- ST     (R[AA]+SIMM18),R[SB]
   --------------------------------------------------------------------------------------------------------------------------------  
-  -- OPCODE =>          PL  &  dAA    & dBA     & dDA     &  FS     &  KNSSel &  MASel &  MBSel &  MMA   & MMB   &  MW  &  MDSel
+  -- OPCODE =>    PL  &  dAA    & dBA     & dDA     &  FS     &  KNSSel &  MASel &  MBSel &  MMA   & MMB   &  MW  &  MDSel
   --------------------------------------------------------------------------------------------------------------------------------  
           23 =>  "10" &   x"0"  &  x"0"   &  x"F"   &  x"3"   &  "011"  &  "00"  &  "00"  &  "00"  &  "00"  &  '0' &  "11",  -- B.cond  (R[SA] cond R[SB]),SIMM14
           24 =>  "10" &   x"0"  &  x"0"   &  x"F"   &  x"3"   &  "011"  &  "00"  &  "01"  &  "00"  &  "00"  &  '0' &  "11",  -- BI.cond (R[SA] cond SIMM14),R[SB]
@@ -129,6 +129,7 @@ signal DR,dDA : std_logic_vector(3 downto 0);
 signal MASel, MBSel, MDSel : std_logic_vector(1 downto 0);
 signal KNSSel : std_logic_vector(2 downto 0);
 signal AA_Buf,BA_buf:unsigned(3 downto 0);
+signal MW_buf: std_logic;
 
 begin
 
@@ -165,6 +166,7 @@ KNSSel<= mem_out(13 downto 11);
 MMA   <= mem_out( 6 downto 5);
 MMB   <= mem_out( 4 downto 3);
 MW    <= mem_out( 2);
+MW_buf<=mem_out(2);
 MDSel <= mem_out( 1 downto 0);
 
 -- select registers to read from the Register File ("Unidade de Armazenamento")
@@ -186,7 +188,7 @@ BA<=std_logic_vector(BA_buf);
 MA<= '0' & MASel(0) when ((unsigned(EX_DA)/=AA_Buf and unsigned(MEM_DA)/=AA_Buf) or AA_Buf=x"0") else
         "10" when (unsigned(EX_DA)=AA_Buf and AA_Buf/=x"0") else
         "11";
-MB<= '0' & MBSel(0) when ((unsigned(EX_DA)/=BA_buf and unsigned(MEM_DA)/=BA_buf) or BA_buf=x"0") else
+MB<= '0' & MBSel(0) when ((unsigned(EX_DA)/=BA_buf and unsigned(MEM_DA)/=BA_buf) or BA_buf=x"0" or MW_buf='1') else
         "10" when (unsigned(EX_DA)=BA_buf and BA_buf/=x"0") else
         "11";
 MD <= MDSel;

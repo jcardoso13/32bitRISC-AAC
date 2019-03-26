@@ -41,8 +41,9 @@ with MMA select
 with MMB select 
     MemDataIn <= KNS when "00",
                A   when "01",
-               B   when "10", 
+              B   when "10", 
                Din when others;
+    --  MemDataIn<= B;
 
 WR <= StageEnable and MW;
 

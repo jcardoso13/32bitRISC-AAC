@@ -297,16 +297,16 @@ IF2ID: IFID_Stage_Registers port map(CLK=>CLK, Enable=>EnableIF, Reset=>EX_PCLoa
 -- Instruction Decode (ID) Stage
 ID: InstructionDecode port map(Instruction=>ID_Instruction, AA=>ID_AA, MA=>ID_MA, BA=>ID_BA, MB=>ID_MB, KNS=>ID_KNS, FS=>ID_FS, PL=>ID_PL, BC=>ID_BC, MMA=>ID_MMA, MMB=>ID_MMB, MW=>ID_MW, MD=>ID_MD, DA=>ID_DA,Disable=>ID_Disable,EX_DA=>EX_DA,MEM_DA=>MEM_DA,EX_MD=>EX_MD);
 -- Registers between ID and EX Stage
-ID2EX: IDEX_Stage_Registers port map(CLK=>CLK, Enable=>EnableID, Reset=>EX_PCLoadEnable,
+ID2EX: IDEX_Stage_Registers port map(CLK=>CLK, Enable=>EnableID, Reset=>EX_PCLoadEnable or Disable,
     ID_I=>ID_Instruction, ID_PC=>ID_PC, ID_A=>ID_A, ID_B=>ID_B, ID_KNS=>ID_KNS, ID_MA=>ID_MA, ID_MB=>ID_MB, ID_MMA=>ID_MMA, ID_MMB=>ID_MMB, ID_MW=>ID_MW, ID_FS=>ID_FS, ID_PL=>ID_PL, ID_BC=>ID_BC, ID_MD=>ID_MD, ID_DA=>ID_DA,
     EX_I=>EX_Instruction, EX_PC=>EX_PC, EX_A=>EX_A, EX_B=>EX_B, EX_KNS=>EX_KNS, EX_MA=>EX_MA, EX_MB=>EX_MB, EX_MMA=>EX_MMA, EX_MMB=>EX_MMB, EX_MW=>EX_MW, EX_FS=>EX_FS, EX_PL=>EX_PL, EX_BC=>EX_BC, EX_MD=>EX_MD, EX_DA=>EX_DA);
 
 aux1<=unsigned(MEM_PC)-unsigned(EX_PC);
-Disable<='1' when aux1/=x"0" or ID_Disable='1' else '0';
+Disable<='1' when aux1/=x"0" and ID_Disable='1' else '0';
 --------------------------------------------------------------------------------------------------------------------------
 -- EX Stage
 --------------------------------------------------------------------------------------------------------------------------
-EX: Execute port map(A => EX_A, B => EX_B, MA=>EX_MA, MB=>EX_MB, KNS=>EX_KNS, FS=>EX_FS, PL=>EX_PL, BC=>EX_BC, PC=>EX_PC, PCLoadEnable=>EX_PCLoadEnable, PCLoadValue=>EX_PCLoadValue, WB_ALUData=>WB_ALUData,MEM_ALUData=>MEM_ALUData,DataD=>EX_ALUData, WR_Branch=>EX_WR,PC_WR=>EX_PC_WR);
+EX: Execute port map(A => EX_A, B => EX_B, MA=>EX_MA, MB=>EX_MB, KNS=>EX_KNS, FS=>EX_FS, PL=>EX_PL, BC=>EX_BC, PC=>EX_PC, PCLoadEnable=>EX_PCLoadEnable, PCLoadValue=>EX_PCLoadValue, WB_ALUData=>WB_RFData,MEM_ALUData=>MEM_ALUData,DataD=>EX_ALUData, WR_Branch=>EX_WR,PC_WR=>EX_PC_WR);
 -- Registers between EX and MEM Stage
 EX2MEM: EXMEM_Stage_Registers port map(CLK=>CLK, Enable=>EnableEX, 
      EX_I=>EX_Instruction,   EX_PC=>EX_PC,   EX_A=>EX_A,   EX_B=>EX_B,   EX_KNS=>EX_KNS,   EX_D=>EX_ALUData,   EX_MMA=>EX_MMA,   EX_MMB=>EX_MMB,   EX_MW=>EX_MW,   EX_MD=>EX_MD,   EX_DA=>EX_DA, EX_WR => EX_WR, EX_PC_WR => EX_PC_WR,Forwarding=>Forwarding,StallData=>StallData,
@@ -314,12 +314,12 @@ EX2MEM: EXMEM_Stage_Registers port map(CLK=>CLK, Enable=>EnableEX,
 
 
 --Forwarding for Store Instructions
-Forwarding<="10" when(EX_MMB="10" and WB_DA=EX_BA) else
-            "11" when (EX_MMB="10" and MEM_DA=EX_BA) else
+Forwarding<="11" when(EX_MMB="10" and WB_DA=EX_BA) else
+            "10" when (EX_MMB="10" and MEM_DA=EX_BA) else
             "00";
-StallData<=WB_MemData;
+StallData<=WB_RFData;
 
-Data_IN_MEM<=WB_MemData when MEM_Forwarding<="10" else
+Data_IN_MEM<=WB_RFData when MEM_Forwarding<="10" else
          StalledData when MEM_Forwarding<="11" else
          MEM_B;
 --

@@ -15,6 +15,17 @@ end RegisterN_reset;
 
 architecture structural of RegisterN_reset is
 begin
-	Q <= (others=> '0') when CLK'event and CLK='1' and Reset='1' else 
-			D when CLK'event and CLK='1' and Reset='0' and Enable='1';
+--	Q <= (others=> '0') when CLK'event and CLK='1' and Reset='1' else 
+	--		D when CLK'event and CLK='1' and Reset='0' and Enable='1';
+			
+process(clk)
+begin
+if rising_edge(clk) then
+    if Reset='1' then
+        Q<=(others=>'0');
+    elsif Enable='1' then
+        Q<=D;
+  end if;
+  end if;
+  end process;
 end structural;
