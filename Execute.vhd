@@ -13,6 +13,7 @@ entity Execute is
     PL     : in std_logic_vector(1 downto 0);
     BC     : in std_logic_vector( 3 downto 0);
     PC     : in std_logic_vector(31 downto 0);
+    Branch_Forward: in STD_LOGIC_VECTOR(1 downto 0);
     MEM_ALUData: in std_logic_vector(31 downto 0);
     WB_ALUData: in std_logic_vector(31 downto 0);
     PCLoadValue : out std_logic_vector(31 downto 0);
@@ -69,9 +70,13 @@ OpB<= B when MB="00" else
   --  OpB <= B when '0',
     --       KNS when others;
 
-with MB(0) select 
-    AD <= KNS when '0',
-          B when others;
+--with MB(0) select 
+   -- AD <= KNS when '0',
+     --     B when others;
+AD<= MEM_ALUData when Branch_Forward="10" else
+    WB_ALUData when  Branch_Forward="11" else
+    B when        Branch_Forward="01" else
+    KNS;
 
 -- instantiate the functional unit
 ALU: FunctionalUnit port map( A => OpA , B => OpB , FS => FS, D => DataD, FL => Flags);

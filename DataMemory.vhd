@@ -15,7 +15,7 @@ end DataMemory;
 
 architecture structural of DataMemory is
 
-constant number_of_address_bits : integer := 6;
+constant number_of_address_bits : integer := 10;
 type storage_type is array (0 to 2**number_of_address_bits-1) of std_logic_vector(n_bits-1 downto 0);
 
 signal storage: storage_type := (

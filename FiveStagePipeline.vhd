@@ -57,6 +57,7 @@ component InstructionDecode
            MEM_DA: in STD_LOGIC_VECTOR(3 downto 0);
            EX_MD: in STD_LOGIC_VECTOR(1 downto 0);
            Disable  : out STD_LOGIC;
+           Branch_Forward: out STD_LOGIC_VECTOR(1 downto 0);
            -- execution control (EX => Execute)
            FS       : out STD_LOGIC_VECTOR ( 3 downto 0);
            PL       : out STD_LOGIC_VECTOR (1 downto 0);
@@ -120,6 +121,7 @@ component Execute
     PL     : in std_logic_vector(1 downto 0);
     BC     : in std_logic_vector( 3 downto 0);
     PC     : in std_logic_vector(31 downto 0);
+    Branch_Forward: in STD_LOGIC_VECTOR(1 downto 0);
     MEM_ALUData: in std_logic_vector(31 downto 0);
     WB_ALUData: in std_logic_vector(31 downto 0);
     PCLoadValue : out std_logic_vector(31 downto 0);
@@ -239,6 +241,7 @@ signal IF_PC, ID_PC, EX_PC, MEM_PC, WB_PC, EX_PCLoadValue : std_logic_vector(31 
 signal ID_BC, EX_BC : std_logic_vector(3 downto 0);
 signal EX_PCLoadEnable : std_logic;
 signal EX_PL, ID_PL: std_logic_vector(1 downto 0);
+signal Branch_Forward,EX_Branch_Forward: std_logic_vector(1 downto 0);
 
 -- RF addressing and operand selection signals
 signal ID_AA, ID_BA, ID_DA, EX_DA, MEM_DA, WB_DA ,EX_BA: std_logic_vector(3 downto 0);
@@ -255,7 +258,7 @@ signal ID_KNS, EX_KNS, MEM_KNS : std_logic_vector(31 downto 0);
 signal ID_A, EX_A, MEM_A: std_logic_vector(31 downto 0);
 signal ID_B, EX_B, MEM_B: std_logic_vector(31 downto 0);
 signal EX_ALUData, MEM_ALUData, WB_ALUData: std_logic_vector(31 downto 0);
-signal MEM_MemData, WB_MemData: std_logic_vector(31 downto 0);
+signal MEM_MemData, WB_MemData,Data_IN_MEM_buf: std_logic_vector(31 downto 0);
 signal WB_RFData: std_logic_vector(31 downto 0);
 
 
@@ -264,7 +267,7 @@ signal EX_WR,MEM_WR,WB_WR: std_logic;
 signal Forwarding,MEM_Forwarding: std_logic_vector(1 downto 0);
 signal StallData,StalledData:std_logic_vector(31 downto 0);
 signal Data_IN_MEM: std_logic_vector(31 downto 0);
-signal ID_Disable,Disable,ID_Flush,WR:std_logic;
+signal ID_Disable,Disable,ID_Flush,WR,Reset2:std_logic;
 
 signal aux1:unsigned(31 downto 0);
 
@@ -278,7 +281,8 @@ EnableWB<='1';
 
 -- Passing BA from ID->EX
  I_BA:RegisterN generic map(n_bits=>4) port map(CLK=>CLK, D=>ID_BA,     Enable=>'1', Q=>EX_BA);
---
+-- Pasing branch forward from ID->EX
+I_Branch:RegisterN generic map(n_bits=>2) port map(CLK=>CLK, D=>Branch_Forward,     Enable=>'1', Q=>EX_Branch_Forward);
 
 --------------------------------------------------------------------------------------------------------------------------
 -- IF Stage
@@ -290,14 +294,14 @@ IF2ID: IFID_Stage_Registers port map(CLK=>CLK, Enable=>EnableIF, Reset=>EX_PCLoa
     IF_PC=>IF_PC, IF_I=>IF_Instruction, 
     ID_PC=>ID_PC, ID_I=>ID_Instruction);
 
-
+Reset2<=EX_PCLoadEnable or Disable;
 --------------------------------------------------------------------------------------------------------------------------
 -- ID Stage
 --------------------------------------------------------------------------------------------------------------------------
 -- Instruction Decode (ID) Stage
-ID: InstructionDecode port map(Instruction=>ID_Instruction, AA=>ID_AA, MA=>ID_MA, BA=>ID_BA, MB=>ID_MB, KNS=>ID_KNS, FS=>ID_FS, PL=>ID_PL, BC=>ID_BC, MMA=>ID_MMA, MMB=>ID_MMB, MW=>ID_MW, MD=>ID_MD, DA=>ID_DA,Disable=>ID_Disable,EX_DA=>EX_DA,MEM_DA=>MEM_DA,EX_MD=>EX_MD);
+ID: InstructionDecode port map(Instruction=>ID_Instruction,Branch_Forward=>Branch_Forward, AA=>ID_AA, MA=>ID_MA, BA=>ID_BA, MB=>ID_MB, KNS=>ID_KNS, FS=>ID_FS, PL=>ID_PL, BC=>ID_BC, MMA=>ID_MMA, MMB=>ID_MMB, MW=>ID_MW, MD=>ID_MD, DA=>ID_DA,Disable=>ID_Disable,EX_DA=>EX_DA,MEM_DA=>MEM_DA,EX_MD=>EX_MD);
 -- Registers between ID and EX Stage
-ID2EX: IDEX_Stage_Registers port map(CLK=>CLK, Enable=>EnableID, Reset=>EX_PCLoadEnable or Disable,
+ID2EX: IDEX_Stage_Registers port map(CLK=>CLK, Enable=>EnableID, Reset=>Reset2,
     ID_I=>ID_Instruction, ID_PC=>ID_PC, ID_A=>ID_A, ID_B=>ID_B, ID_KNS=>ID_KNS, ID_MA=>ID_MA, ID_MB=>ID_MB, ID_MMA=>ID_MMA, ID_MMB=>ID_MMB, ID_MW=>ID_MW, ID_FS=>ID_FS, ID_PL=>ID_PL, ID_BC=>ID_BC, ID_MD=>ID_MD, ID_DA=>ID_DA,
     EX_I=>EX_Instruction, EX_PC=>EX_PC, EX_A=>EX_A, EX_B=>EX_B, EX_KNS=>EX_KNS, EX_MA=>EX_MA, EX_MB=>EX_MB, EX_MMA=>EX_MMA, EX_MMB=>EX_MMB, EX_MW=>EX_MW, EX_FS=>EX_FS, EX_PL=>EX_PL, EX_BC=>EX_BC, EX_MD=>EX_MD, EX_DA=>EX_DA);
 
@@ -306,7 +310,7 @@ Disable<='1' when aux1/=x"0" and ID_Disable='1' else '0';
 --------------------------------------------------------------------------------------------------------------------------
 -- EX Stage
 --------------------------------------------------------------------------------------------------------------------------
-EX: Execute port map(A => EX_A, B => EX_B, MA=>EX_MA, MB=>EX_MB, KNS=>EX_KNS, FS=>EX_FS, PL=>EX_PL, BC=>EX_BC, PC=>EX_PC, PCLoadEnable=>EX_PCLoadEnable, PCLoadValue=>EX_PCLoadValue, WB_ALUData=>WB_RFData,MEM_ALUData=>MEM_ALUData,DataD=>EX_ALUData, WR_Branch=>EX_WR,PC_WR=>EX_PC_WR);
+EX: Execute port map(A => EX_A, B => EX_B, MA=>EX_MA, MB=>EX_MB, KNS=>EX_KNS,Branch_Forward=>EX_Branch_Forward, FS=>EX_FS, PL=>EX_PL, BC=>EX_BC, PC=>EX_PC, PCLoadEnable=>EX_PCLoadEnable, PCLoadValue=>EX_PCLoadValue, WB_ALUData=>WB_RFData,MEM_ALUData=>MEM_ALUData,DataD=>EX_ALUData, WR_Branch=>EX_WR,PC_WR=>EX_PC_WR);
 -- Registers between EX and MEM Stage
 EX2MEM: EXMEM_Stage_Registers port map(CLK=>CLK, Enable=>EnableEX, 
      EX_I=>EX_Instruction,   EX_PC=>EX_PC,   EX_A=>EX_A,   EX_B=>EX_B,   EX_KNS=>EX_KNS,   EX_D=>EX_ALUData,   EX_MMA=>EX_MMA,   EX_MMB=>EX_MMB,   EX_MW=>EX_MW,   EX_MD=>EX_MD,   EX_DA=>EX_DA, EX_WR => EX_WR, EX_PC_WR => EX_PC_WR,Forwarding=>Forwarding,StallData=>StallData,
@@ -319,9 +323,13 @@ Forwarding<="11" when(EX_MMB="10" and WB_DA=EX_BA) else
             "00";
 StallData<=WB_RFData;
 
-Data_IN_MEM<=WB_RFData when MEM_Forwarding<="10" else
-         StalledData when MEM_Forwarding<="11" else
-         MEM_B;
+--Data_IN_MEM<=WB_RFData when MEM_Forwarding<="10" else
+  --       StalledData when MEM_Forwarding<="11" else
+    --     MEM_B when MEM_Forwarding<="00" else
+      --  MEM_B;
+
+Data_IN_MEM_buf<=WB_RFData when MEM_Forwarding(0)='0' else StalledData;
+Data_IN_MEM<= MEM_B when MEM_Forwarding(1)='0' else Data_IN_MEM_buf;
 --
 
 

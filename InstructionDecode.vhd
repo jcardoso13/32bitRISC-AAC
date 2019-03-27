@@ -8,6 +8,7 @@ entity InstructionDecode is
         MEM_DA: in STD_LOGIC_VECTOR(3 downto 0);
         EX_MD: in std_logic_vector(1 downto 0);
         Disable: out std_logic;
+        Branch_Forward: out std_logic_vector(1 downto 0);
             -- Instruction operands (OF => Operand Fetch)
            AA       : out STD_LOGIC_VECTOR ( 3 downto 0);
            MA       : out STD_LOGIC_VECTOR(1 downto 0);
@@ -130,6 +131,7 @@ signal MASel, MBSel, MDSel : std_logic_vector(1 downto 0);
 signal KNSSel : std_logic_vector(2 downto 0);
 signal AA_Buf,BA_buf:unsigned(3 downto 0);
 signal MW_buf: std_logic;
+signal PL_buf: std_logic_vector(1 downto 0);
 
 begin
 
@@ -156,6 +158,7 @@ mem_out <= decode_memory(to_integer(unsigned(Opcode)));
 
 -- Assign memory outputs
 PL    <= mem_out(31 downto 30);
+PL_buf<=mem_out(31 downto 30);
 dDA   <= mem_out(21 downto 18);
 dAA   <= mem_out(29 downto 26);
 dBA   <= mem_out(25 downto 22);
@@ -188,8 +191,11 @@ BA<=std_logic_vector(BA_buf);
 MA<= '0' & MASel(0) when ((unsigned(EX_DA)/=AA_Buf and unsigned(MEM_DA)/=AA_Buf) or AA_Buf=x"0") else
         "10" when (unsigned(EX_DA)=AA_Buf and AA_Buf/=x"0") else
         "11";
-MB<= '0' & MBSel(0) when ((unsigned(EX_DA)/=BA_buf and unsigned(MEM_DA)/=BA_buf) or BA_buf=x"0" or MW_buf='1') else
+MB<= '0' & MBSel(0) when ((unsigned(EX_DA)/=BA_buf and unsigned(MEM_DA)/=BA_buf) or BA_buf=x"0" or MW_buf='1' or PL_buf/="00") else
         "10" when (unsigned(EX_DA)=BA_buf and BA_buf/=x"0") else
+        "11";
+Branch_Forward<='0' & MBSel(0) when ((unsigned(EX_DA)/=BA_buf and unsigned(MEM_DA)/=BA_buf) or BA_buf=x"0" or PL_buf="00") 
+        else  "10" when (unsigned(EX_DA)=BA_buf and BA_buf/=x"0") else
         "11";
 MD <= MDSel;
 
