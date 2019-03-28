@@ -6,4 +6,3 @@
 1 stall on Loads
 Branch Not taken policy 2 cycle penalty in miss prediction
 
-This project was done for Advanced Computer Architecture Class
